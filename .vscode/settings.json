@@ -1,0 +1,14 @@
+{
+    "editor.indentSize": "tabSize",
+    "editor.language.colorizedBracketPairs": [
+
+    ],
+    "editor.rulers": [
+
+    ],
+    "editor.semanticTokenColorCustomizations": {
+
+    },
+    "editor.tokenColorCustomizations": {}
+    "javascript.validate.enable": false
+}
