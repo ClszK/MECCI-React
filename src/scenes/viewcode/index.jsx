@@ -1,378 +1,503 @@
-import { useState } from "react";
+import React, { useState, useContext, useRef, useEffect } from "react";
 
-import { Box, useTheme, Card, createStyles } from "@mui/material";
-import { ColorModeContext, tokens } from "../../theme";
+import { tokens } from "../../theme";
 import Header from "../../components/Header";
 import client from "../../utils/clients";
 import Viewbutton from "../../components/Viewbutton";
+import { FileContext } from "../../context/context";
+import ModalDialog from "../../components/ModalDialog";
+import Validate from "../../components/Validate";
 
-import Prism from "prismjs";
+import Prismjs from "prismjs"
 import "prismjs/components/prism-hcl";
+import "prismjs/themes/prism-dark.css";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { materialDark } from "react-syntax-highlighter/dist/esm/styles/prism";
-import { materialLight } from "react-syntax-highlighter/dist/esm/styles/prism";
-import { Visibility } from "@mui/icons-material";
+import { Box, useTheme, Card, Typography } from "@mui/material";
 import ReactDiffViewer, { DiffMethod } from "react-diff-viewer-continued";
+import { GiCycle } from "react-icons/gi";
+import VerifiedIcon from '@mui/icons-material/Verified';
+import HubIcon from '@mui/icons-material/Hub';
+import DoneIcon from '@mui/icons-material/Done';
+import ClearIcon from '@mui/icons-material/Clear';
+// import { socket, initSocketConnection } from "../../utils/socket"
 
-const value1 = `
-terraform {
-  required_version =">= 0.12"
-  required_providers {
-      openstack = {
-          source     = "terraform-provider-openstack/openstack"
-          version    = "~> 1.48.0"
-      }
-  }
-}
-provider openstack {
-  user_name       = "admin"
-  tenant_name     = "admin"
-  password        = "secret"
-  auth_url        = "http://172.30.1.17/identity"
-}
-# Image creation
-resource "openstack_images_image_v2" "ubuntu1804" {
-  name                = "ubuntu1804"
-  local_file_path     = "/opt/stack/IaC/bionic-server-cloudimg-amd64.img"
-  container_format    = "bare"
-  disk_format         = "qcow2"
-}
-resource "openstack_images_image_v2" "cirros" {
-  name                = "cirros"
-  local_file_path     = "/opt/stack/IaC/cirros-0.5.2-x86_64-disk.img"
-  container_format    = "bare"
-  disk_format         = "qcow2"
-}
-# Flavor creation
-resource "openstack_compute_flavor_v2" "flavor_1" {
-  name        = "flavor_1"
-  ram         = "8192"
-  vcpus       = "1"
-  disk        = "20"
-  flavor_id       = "flavor_1"
-  is_public       = "true"
-}
-
-# Router creation
-resource "openstack_networking_router_v2" "router_1" {
-  name                = "router_1"
-  external_network_id = "5b16677d-b429-4b7e-8edb-6e1c06020db3"
-}
-resource "openstack_networking_router_v2" "router_2" {
-  name                = "router_2"
-  external_network_id = "5b16677d-b429-4b7e-8edb-6e1c06020db3"
-}
-resource "openstack_networking_router_v2" "router_3" {
-  name                = "router_3"
-  external_network_id = "5b16677d-b429-4b7e-8edb-6e1c06020db3"
-}
-
-# Network creation
-resource "openstack_networking_network_v2" "private_1"{
-  name            = "private_1"
-  admin_state_up    = true
-}
-resource "openstack_networking_network_v2" "private_2" {
-  name            = "private_2"
-  admin_state_up    = true
-}
-resource "openstack_networking_network_v2" "private_3" {
-  name            = "private_3"
-  admin_state_up    = true
-}
-resource "openstack_networking_network_v2" "private_4"{
-  name            = "private_4"
-  admin_state_up    = true
-}
-resource "openstack_networking_network_v2" "private_5"{
-  name            = "private_5"
-  admin_state_up    = true
-}
-
-#Connect network to Router1
-resource "openstack_networking_subnet_v2" "subnet_1" {
-  name        = "subnet_1"
-  network_id    = openstack_networking_network_v2.private_1.id
-  cidr        = "10.0.0.0/24"
-  ip_version        = 4
-  dns_nameservers    = ["8.8.8.8","8.8.4.4"]
-}
-resource "openstack_networking_subnet_v2" "subnet_2" {
-  name        = "subnet_2"
-  network_id    =  openstack_networking_network_v2.private_2.id
-  cidr        = "10.0.1.0/24"
-  ip_version        = 4
-}
-
-resource "openstack_networking_subnet_v2" "subnet_3" {
-  name        = "subnet_3"
-  network_id    = openstack_networking_network_v2.private_3.id
-  cidr        = "10.0.2.0/24"
-  ip_version        = 4
-}
-
-resource "openstack_networking_subnet_v2" "subnet_4" {
-  name        = "subnet_4"
-  network_id    = openstack_networking_network_v2.private_4.id
-  cidr        = "10.0.3.0/24"
-  ip_version        = 4
-}
-
-resource "openstack_networking_subnet_v2" "subnet_5" {
-  name        = "subnet_5"
-  network_id    = openstack_networking_network_v2.private_5.id
-  cidr        = "10.0.4.0/24"
-  ip_version        = 4
-}
-
-resource "openstack_networking_router_interface_v2" "interface_1"{
-  router_id    = openstack_networking_router_v2.router_1.id
-  subnet_id    = openstack_networking_subnet_v2.subnet_1.id
-}
-resource "openstack_networking_router_interface_v2" "interface_2" {
-  router_id    = openstack_networking_router_v2.router_1.id
-  subnet_id    = openstack_networking_subnet_v2.subnet_2.id
-}
-resource "openstack_networking_router_interface_v2" "interface_3" {
-  router_id    = openstack_networking_router_v2.router_2.id
-  subnet_id    = openstack_networking_subnet_v2.subnet_3.id
-}
-resource "openstack_networking_router_interface_v2" "interface_4" {
-  router_id    = openstack_networking_router_v2.router_1.id
-  subnet_id    = openstack_networking_subnet_v2.subnet_4.id
-}
-resource "openstack_networking_router_interface_v2" "interface_5" {
-  router_id    = openstack_networking_router_v2.router_3.id
-  subnet_id    = openstack_networking_subnet_v2.subnet_5.id
-}
-
-# Modified code with updated rules
-resource "openstack_compute_secgroup_v2" "http" {
-  name        = "http"
-  description    = "Open input http port"
-  rule {
-      from_port    = 80
-      to_port        = 80
-      ip_protocol    ="tcp"
-      cidr        ="0.0.0.0/0"
-  }
-}
-resource "openstack_compute_secgroup_v2" "service" {
-  name        = "service"
-  description    = "Open input service port"
-  rule {
-      from_port    = 8080
-      to_port        = 8080
-      ip_protocol    = "tcp"
-      cidr        = "0.0.0.0/0"
-  }
-}
-
-resource "openstack_networking_port_v2" "http" {
-  name                = "port-instance-http"
-  network_id            = openstack_networking_network_v2.private_1.id
-  admin_state_up        = true
-  security_group_ids     = [
-      openstack_compute_secgroup_v2.http.id,
-      openstack_compute_secgroup_v2.service.id
-  ]
-  fixed_ip {
-      subnet_id         = openstack_networking_subnet_v2.subnet_1.id
-  }
-}
-resource "openstack_networking_floatingip_v2" "http"{
-  pool = "public"
-}
-
-resource "openstack_compute_floatingip_associate_v2" "http" {
-  floating_ip    = openstack_networking_floatingip_v2.http.address
-  instance_id    = openstack_compute_instance_v2.instance_1.id
-}
-
-resource "openstack_compute_instance_v2" "instance_1" {
-  name            = "instance_1"
-  image_id        = openstack_images_image_v2.ubuntu1804.id
-  flavor_id       = "flavor_1"
-
-  user_data        = file("simple_webserver.sh")
-
-  network {
-      port        = openstack_networking_port_v2.http.id
-  }
-depends_on		= [openstack_networking_port_v2.http]
-}
-
-# Add 3 instances with cirros image in the network
-resource "openstack_compute_instance_v2" "instance_2" {
-  count            = 1
-  name            = "instance_2"
-  image_id        = openstack_images_image_v2.cirros.id
-  flavor_id       = "42"
-
-  network {
-      name    = openstack_networking_network_v2.private_2.name
-  }
-depends_on	= [openstack_networking_subnet_v2.subnet_2]
-}
-resource "openstack_compute_instance_v2" "instance_3" {
-  count            = 1
-  name            = "instance_3"
-  image_id        = openstack_images_image_v2.cirros.id
-  flavor_id       = "42"
-
-  network {
-      name    = openstack_networking_network_v2.private_3.name
-  }
-depends_on	= [openstack_networking_subnet_v2.subnet_3]
-}
-resource "openstack_compute_instance_v2" "instance_4" {
-  count            = 1
-  name            = "instance_4"
-  image_id        = openstack_images_image_v2.cirros.id
-  flavor_id       = "42"
-
-  network {
-      name    = openstack_networking_network_v2.private_5.name
-  }
-depends_on	= [openstack_networking_subnet_v2.subnet_5]
-}`;
+import { io } from "socket.io-client";
 
 const Viewcode = () => {
+
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
+  const scrollRef = useRef();
 
+  const { filename, setFilename, iac, setIac, mutated, setMutated } =
+    useContext(FileContext);
   const [open, setOpen] = useState(false);
-  const [origin, setOrigin] = useState(value1);
-  const [mutated, setMutated] = useState("");
-  const [mutatedButton, setMutatedButton] = useState(true);
+  const [result, setResult] = useState(false);
 
+  const [mutBut, setMutBut] = useState(false);
+
+  const [diffBut, setDiffBut] = useState("disabled");
+  const [graphBut, setGraphBut] = useState("disabled");
+  const [scriptBut, setScriptBut] = useState("disabled");
+  const [genBut, setGenBut] = useState("disabled");
+  const [valBut, setValBut] = useState("disabled");
+
+  const [mutlodingBut, setMutlodingBut] = useState(false);
+  const [graphlodingBut, setGraphlodingBut] = useState(false);
+  const [injectlodingBut, setInjectlodingBut] = useState(false);
+  const [validatelodingBut, setValidatelodingBut] = useState(false);
+  const [genlodingBut, setGenlodingBut] = useState(false);
+
+  // const [diffBut, setDiffBut] = useState(undefined);
+  // const [graphBut, setGraphBut] = useState(undefined);
+  // const [scriptBut, setScriptBut] = useState(undefined);
+  // const [genBut, setGenBut] = useState(undefined);
+  // const [valBut, setValBut] = useState(undefined);
+
+  const [validate, setValidate] = useState(false);
+
+  const [svgmodal, setSvgmodal] = useState(false);
+  const [originsvg, setOriginsvg] = useState("");
+  const [mutatedsvg, setMutatedsvg] = useState("");
+
+  const [test, setTest] = useState(false);
+
+  const [validateColor, setValidateColor] = useState("red");
+
+  const [soc, setSoc] = useState(false);
+  const [dis, setDis] = useState(true);
+
+  const [before, setBefor] = useState("");
+  const [after, setAfter] = useState("");
+  const [inject, setInject] = useState(false);
+
+  let socket = "";
+
+  const serverURL = "http://211.117.84.151:8082/static/"
+
+  const url = "http://121.135.134.175/dashboard/project/network_topology/"
+
+  const scrollToBottom = () => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+    scrollRef.current.style.overflow = "scroll";
+  }, [mutated]);
+
+  // useEffect(() => {
+  //   scrollRef.current.scrollIntoView({ behavior: 'smooth', block: 'end', inline: 'nearest' });
+  // }, [mutated])
+
+  useEffect(
+    () => {
+      socket = io("http://211.117.84.151:8083", { transports: ['websocket', 'polling', 'flashsocket'] });
+      setMutated("")
+      socket.connect();
+      socket.on("my_response", (data) => {
+        if (data.data === "Connected" || data.data === null)
+          console.log(data);
+        else {
+          setMutated((prev) => prev + data.data);
+        }
+      });
+      return (
+        () => {
+          socket.disconnect()
+        }
+      )
+    },
+    [soc]
+  )
+
+  // useEffect(
+  //   () => {
+  //     socket.off("my_response");
+  //   }, []
+  // )
   const handleMutatedButton = async () => {
-    setMutated("Mutating...");
+    setSoc((prev) => !prev);
+    setMutlodingBut(true);
+    setMutated("")
+    setDiffBut("disabled");
+    setGraphBut("disabled");
+    setValBut("disabled");
+    setScriptBut("disabled");
+    setGenBut("disabled");
     try {
       console.log("diffstart");
-      const res = await client.get("/mutation?fileName=r2s4i3-ex-1");
+      const res = await client.get(`/mutation?fileName=${filename}`);
+      setOriginsvg("");
       setMutated(res.data.mutated);
-      console.log(mutated);
+      setIac(res.data.origin);
+      setMutated(res.data.mutated);
+      setDiffBut(undefined);
+      setValBut(undefined);
+      setDis(false);
     } catch (err) {
       console.log(err);
+      setMutated(err + "\n" + "Retry Mutated");
     }
+    setMutlodingBut(false);
   };
 
   const handleDiffButton = () => {
     setOpen((prev) => !prev);
   };
 
-  const highlightSyntax = (str) => (
-    <pre
-      style={{ display: "inline" }}
-      dangerouslySetInnerHTML={{
-        __html: Prism.highlight(str, Prism.languages.hcl),
-      }}
-    />
+  const handleGraphButton = async () => {
+    if (originsvg == "") {
+      setGraphlodingBut(true);
+      try {
+        const res = await client.get("/visualize-iac");
+        setOriginsvg(res.data.origin_svg.replace(/\\/g, ""));
+        setMutatedsvg(res.data.mutated_svg.replace(/\\/g, ""));
+        setSvgmodal(true);
+      } catch (err) {
+        console.log(err);
+      }
+    }
+    else {
+      setSvgmodal((prev) => !prev);
+    }
+    setGraphlodingBut(false);
+  };
+
+  const handleInjectButton = async () => {
+    setInjectlodingBut(true);
+    setInject((prev) => !prev);
+
+    setAfter(mutated);
+    try {
+      const res = await client.get("/injection");
+      console.log(res.data.injected);
+      setMutated(res.data.injected);
+      setBefor(res.data.injected);
+    } catch (err) {
+      console.log(err);
+    }
+    setInjectlodingBut(false);
+  }
+
+  const handleValidateButton = async () => {
+    setValidatelodingBut(true);
+    try {
+      const res = await client.get("/validation");
+      if (res.data.result === "fail")
+        setValidateColor("red");
+      else {
+        setValidateColor("green");
+        setGraphBut(undefined);
+        setScriptBut(undefined);
+        setGenBut(undefined)
+      }
+    } catch (err) {
+      console.log(err);
+    }
+    console.log(test);
+    setTest(true);
+    setValidatelodingBut(false)
+  }
+
+  const handleGenerateButton = async () => {
+    window.open(url);
+    setGenlodingBut(true);
+    try {
+      const res = await client.get("/terraform-apply");
+      console.log(res);
+    }
+    catch (err) {
+      console.log(err);
+    }
+    setGenlodingBut(false);
+  }
+
+
+  const highlightSyntax = (str) => {
+    return (
+      <SyntaxHighlighter
+        language="hcl"
+        style={materialDark}
+        customStyle={{
+          margin: 0,
+          padding: 0,
+          background: "transparent",
+        }}
+      >
+        {str}
+      </SyntaxHighlighter>);
+  };
+
+  const diffView = (
+    <Box display="flex"
+      gridColumn="span 12"
+      gridRow="span 14"
+      alignItems="center"
+      borderRadius="40px"
+      sx={{
+        margin: "10px",
+        background: `${colors.primary[400]}`,
+      }}>
+      <Card
+        sx={{
+          display: "flex",
+          width: "100%",
+          height: "90%",
+          margin: "3%",
+          borderRadius: "20px",
+          boxShadow: "4px 4px 16px 16px rgba(0, 0, 0, 0.2)",
+          background: "#2f2f2f",
+          overflow: "scroll",
+        }}
+      >
+        <ReactDiffViewer
+          oldValue={iac}
+          newValue={mutated}
+          splitView={true}
+          compareMethod={DiffMethod.WORDS}
+          renderContent={highlightSyntax}
+          useDarkTheme={true}
+          styles={{
+            // contentText: {
+            //   backgroundColor: "transparent",
+            // },
+          }}
+        />
+      </Card>
+    </Box>
   );
 
   return (
-    <Box
-      marginLeft="50px"
-      marginTop="30px"
-      sx={{
-        "& ::-webkit-scrollbar": {
-          visibility: "hidden",
-        },
-        "& ::-webkit-scrollbar:hover": {
-          display: "invisible",
-        },
-      }}
-    >
+    <>
       <Box
-        display="grid"
-        gridTemplateColumns="repeat(15, 1fr)"
-        gridAutoRows="35px"
-        gap="15px"
+        marginLeft="50px"
+        marginTop="10px"
+        sx={{
+          "& ::-webkit-scrollbar": {
+            visibility: "hidden",
+          },
+          "& ::-webkit-scrollbar:hover": {
+            display: "invisible",
+          },
+        }}
       >
         <Box
-          gridColumn="span 6"
-          alignItems="center"
-          justifyContent="center"
-          verticalalign="middle"
+          display="grid"
+          gridTemplateColumns="repeat(15, 1fr)"
+          gridAutoRows="35px"
+          gap="15px"
         >
-          <Header title="Origin" />
-        </Box>
-        <Box
-          gridColumn="span 6"
-          alignItems="center"
-          justifyContent="center"
-          verticalalign="middle"
-        >
-          <Header title="Mutated" />
-        </Box>
-        <Box
-          display="flex"
-          gridColumn="span 6"
-          gridRow="span 14"
-          alignItems="center"
-          borderRadius="40px"
-          sx={{
-            margin: "10px",
-            background: `${colors.primary[400]}`,
-          }}
-        >
-          <Card
-            sx={{
-              display: "flex",
-              justifyContent: "center",
-              width: "100%",
-              height: "90%",
-              margin: "6%",
-              borderRadius: "20px",
-              boxShadow: "4px 4px 16px 16px rgba(0, 0, 0, 0.2)",
-              background: "#2f2f2f",
-            }}
+          <Box
+            gridColumn="span 6"
+            alignItems="center"
+            justifyContent="center"
+            verticalalign="middle"
           >
-            <SyntaxHighlighter
-              showLineNumbers
-              language="hcl"
-              style={materialDark}
-            >
-              {origin}
-            </SyntaxHighlighter>
-          </Card>
-        </Box>
-        <Box
-          display="flex"
-          gridColumn="span 6"
-          gridRow="span 14"
-          alignItems="center"
-          borderRadius="40px"
-          sx={{
-            margin: "10px",
-            background: `${colors.primary[400]}`,
-          }}
-        >
-          <Card
-            sx={{
-              display: "flex",
-              justifyContent: "center",
-              height: "90%",
-              width: "100%",
-              margin: "6%",
-              borderRadius: "20px",
-              boxShadow: "4px 4px 16px 16px rgba(0, 0, 0, 0.2)",
-              background: "#2f2f2f",
-            }}
+            <Header title="Origin" />
+          </Box>
+          <Box
+            gridColumn="span 6"
+            alignItems="center"
+            justifyContent="center"
+            verticalalign="middle"
           >
-            <SyntaxHighlighter
-              className="test"
-              language="hcl"
-              showLineNumbers
-              style={materialDark}
+            <Header title="Mutated" />
+          </Box>
+          {test && (
+            <ModalDialog
+              open={test}
+              handleClose={() => setTest((prev) => !prev)}
+              title="Validate"
+              styled={"1000px"}
             >
-              {mutated}
-            </SyntaxHighlighter>
-          </Card>
-        </Box>
-        <Box gridColumn="span 3" />
-        <Box gridColumn="span 3" />
+              <Box display="flex" sx={{ color: validateColor }}>
+                <Box sx={{ float: "left", width: "33%", textAlign: "center" }}
+                >
+                  <GiCycle size="5rem" />
+                  <Typography sx={{ fontWeight: "bold", color: "#FFF" }}>Consistency Test</Typography>
+                  {`${validateColor}` === "red" ? <ClearIcon /> : <DoneIcon />}
+                </Box>
+                <Box sx={[{ float: "left", width: "33%", textAlign: "center" },
+                  "svg":{
+                }]}>
+                <VerifiedIcon sx={{ fontSize: "5rem" }} />
+                <Typography sx={{ fontWeight: "bold", color: "#FFF" }}>Validity Test</Typography>
+                {`${validateColor}` === "red" ? <ClearIcon /> : <DoneIcon />}
+              </Box>
+              <Box sx={{ float: "left", width: "33%", textAlign: "center" }}>
+                <HubIcon sx={{ fontSize: "5rem" }} />
+                <Typography sx={{ fontWeight: "bold", color: "#FFF" }}>Features Extracting</Typography>
+                {`${validateColor}` === "red" ? <ClearIcon /> : <DoneIcon />}
+              </Box>
+            </Box>
+            </ModalDialog>
+            )}
+        {open && diffView}
+        {!open && !svgmodal && (
+          <>
+            <Box
+              display="flex"
+              gridColumn="span 6"
+              gridRow="span 14"
+              alignItems="center"
+              borderRadius="40px"
+              sx={{
+                margin: "10px",
+                background: `${colors.primary[400]}`,
+              }}
+            >
+              <Card
+                sx={{
+                  display: "flex",
+                  width: "100%",
+                  height: "90%",
+                  margin: "6%",
+                  borderRadius: "20px",
+                  boxShadow: "4px 4px 16px 16px rgba(0, 0, 0, 0.2)",
+                  background: "#2f2f2f",
+                }}
+              >
+                <SyntaxHighlighter
+                  showLineNumbers
+                  language="hcl"
+                  style={materialDark}
+                >
+                  {iac}
+                </SyntaxHighlighter>
+              </Card>
+            </Box>
+            <Box
+              display="flex"
+              gridColumn="span 6"
+              gridRow="span 14"
+              alignItems="center"
+              borderRadius="40px"
+              sx={{
+                margin: "10px",
+                background: `${colors.primary[400]}`,
+              }}
+            >
+              <Card
+                ref={scrollRef}
+                sx={{
+                  display: "flex",
+                  height: "90%",
+                  width: "100%",
+                  margin: "6%",
+                  borderRadius: "20px",
+                  boxShadow: "4px 4px 16px 16px rgba(0, 0, 0, 0.2)",
+                  background: "#2f2f2f",
+                }}>
+                <Box ref={scrollRef}>
+                  <SyntaxHighlighter
+                    language="hcl"
+                    showLineNumbers
+                    style={materialDark}
+                  >
+                    {mutated}
+                  </SyntaxHighlighter>
+                </Box>
+              </Card>
+            </Box>
+          </>
+        )}
+        {svgmodal && (
+          <>
+            <Box
+              display="flex"
+              gridColumn="span 6"
+              gridRow="span 14"
+              alignItems="center"
+              borderRadius="40px"
+              sx={{
+                margin: "10px",
+                background: `${colors.primary[400]}`,
+              }}
+            >
+              <Card
+                sx={{
+                  display: "flex",
+                  width: "100%",
+                  textAlign: "center",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  height: "90%",
+                  margin: "6%",
+                  borderRadius: "20px",
+                  boxShadow: "4px 4px 16px 16px rgba(0, 0, 0, 0.2)",
+                  background: "#2f2f2f",
+                }}
+              >
+                <img style={{ width: "90%" }} alt="origins-vg" src={`${serverURL}/origin.svg`} />
+              </Card>
+            </Box>
+            <Box
+              display="flex"
+              gridColumn="span 6"
+              gridRow="span 14"
+              alignItems="center"
+              borderRadius="40px"
+              sx={{
+                margin: "10px",
+                background: `${colors.primary[400]}`,
+              }}
+            >
+              <Card
+                sx={{
+                  display: "flex",
+                  height: "90%",
+                  width: "100%",
+                  margin: "6%",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderRadius: "20px",
+                  boxShadow: "4px 4px 16px 16px rgba(0, 0, 0, 0.2)",
+                  background: "#2f2f2f",
+                }}
+              >
+                <img style={{ width: "90%" }} alt="mutated-vg" src={`${serverURL}/mutated.svg`} />
+              </Card>
+            </Box>
+          </>
+        )}
+        {inject && (
+          <ModalDialog
+            open={inject}
+            handleClose={() => setInject((prev) => !prev)}
+            title="Before & After"
+            // title="Validate"
+            styled={"1000px"}>
+            <ReactDiffViewer
+              oldValue={before}
+              newValue={after}
+              splitView={false}
+              compareMethod={DiffMethod.WORDS}
+              renderContent={highlightSyntax}
+              useDarkTheme={true}
+              styles={{
+                // contentText: {
+                //   backgroundColor: "transparent",
+                // },
+              }}
+            />
+          </ModalDialog>
+        )}
+        <Box sx={{ gridColumn: "span 3" }} />
+        <Viewbutton
+          title="Validate"
+          height="70%"
+          width="70%"
+          color="grey[100]"
+          col="span 3"
+          row="span 3"
+          disabled={valBut}
+          loading={validatelodingBut}
+          click={handleValidateButton}
+        />
         <Viewbutton
           title="show diff"
           height="70%"
@@ -380,57 +505,64 @@ const Viewcode = () => {
           color="grey[100]"
           col="span 3"
           row="span 3"
+          disabled={diffBut}
           click={handleDiffButton}
         />
-        <Box gridColumn="span 3" />
-        <Viewbutton
-          title="Inject Script"
-          height="70%"
-          color="grey[100]"
-          width="70%"
-          col="span 3"
-          row="span 3"
-        />
-        <Box gridColumn="span 3" />
         <Viewbutton
           title="Show Graph"
           height="70%"
+          color="grey[100]"
+          width="70%"
+          col="span 3"
+          row="span 3"
+          click={handleGraphButton}
+          disabled={graphBut}
+          loading={graphlodingBut}
+        />
+        <Viewbutton
+          title="Inject Script"
+          height="70%"
           width="70%"
           color="grey[100]"
           col="span 3"
           row="span 3"
+          disabled={scriptBut}
+          loading={injectlodingBut}
+          click={handleInjectButton}
         />
-      </Box>
+      </Box >
       <Box
-        display="flex"
-        alignContent="center"
-        justifyContent="center"
-        sx={{ width: "100%", height: "100px", margin: "2" }}
+        display="grid"
+        gridTemplateColumns="repeat(2, 1fr)"
+        gridTemplateRows="repeat(1, 1fr)"
+        sx={{
+          mt: "15px",
+          height: "10vh",
+          mr: "20%"
+        }}
       >
         <Viewbutton
-          title="Mutated"
-          height="70%"
-          width="100%"
+          title="Mutate"
           color="grey[100]"
+          width="100%"
+          height="108px"
           click={handleMutatedButton}
+          loading={mutlodingBut}
+
         />
         <Viewbutton
           title="Generate"
-          height="70%"
           width="100%"
+          height="108px"
           color="grey[100]"
+          disabled={genBut}
+          click={handleGenerateButton}
+          loading={genlodingBut}
         />
       </Box>
-      {open && (
-        <ReactDiffViewer
-          oldValue={origin}
-          newValue={mutated}
-          splitView={true}
-          compareMethod={DiffMethod.WORDS}
-          // renderContent={highlightSyntax}
-        ></ReactDiffViewer>
-      )}
-    </Box>
+    </Box >
+      {/* {test && <Validate open={test} close={() => setTest((prev) => !prev)}>test</Validate>} */ }
+    </>
   );
 };
 

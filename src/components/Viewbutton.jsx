@@ -1,45 +1,38 @@
-import { Button, Typography, useTheme, Box } from "@mui/material";
+import { Button, useTheme, Box, Typography } from "@mui/material";
+import { LoadingButton } from '@mui/lab';
 import { tokens } from "../theme";
-import axios from "axios";
-import { useState } from "react";
-import ModalDialog from "./ModalDialog";
 
-const Viewbutton = ({ title, color, col, row, width, click}) => {
+const Viewbutton = ({ title, color, col, row, width, click, disabled, loading }) => {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
-  const [open, setOpen] = useState(false);
 
   return (
-    <Box gridColumn={col} gridRow={row} display="flex" justifyContent="center">
-      <Button
+    <Box gridColumn={col} gridRow={row} display="flex" justifyContent="center"
+      sx={{
+        width: "100%",
+      }}>
+      <LoadingButton
         variant="contained"
         onClick={click}
         sx={{
-          backgroundColor: colors.blueAccent[700],
-          boxShadow: "5",
+          backgroundColor: colors.blueAccent[800],
+          boxShadow: "15",
           color: `colors.${color}`,
-          fontSize: "14px",
+          fontSize: "18px",
           fontWeight: "bold",
+          justifyContent: "center",
           alignItems: "center",
           width: { width },
-          height: "70%",
+          height: "80%",
           maxWidth: "150px",
-          margin: "10px",
+          borderRadius: "20px"
         }}
+        disabled={disabled}
+        loading={loading}
       >
         {title}
-      </Button>
-      {/* <ModalDialog
-        open={open}
-        handleClose={() => (setOpen(false))}
-        title = "Diff"
-        style="1200px"
-      >
-        <Box sx={{ overflow: "auto", background: "" }}>
-          <div dangerouslySetInnerHTML={{ __html: diff }}></div> 
-        </Box>
-      </ModalDialog> */}
-    </Box>
+      </LoadingButton>
+    </Box >
   );
 };
 

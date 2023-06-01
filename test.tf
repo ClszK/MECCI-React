@@ -1,4 +1,4 @@
-  const value = `
+
   terraform {
     required_version =">= 0.12"
     required_providers {
@@ -27,6 +27,20 @@ resource "openstack_images_image_v2" "cirros" {
     container_format    = "bare"
     disk_format         = "qcow2"
 }
+
+resource "openstack_compute_instance_v2" "instance_3" {
+    count            = 1
+    name            = "instance_3"
+    image_id        = openstack_images_image_v2.cirros.id
+    flavor_id       = "42"
+
+    network {
+        name    = openstack_networking_network_v2.private_3.name
+    }
+	depends_on	= [openstack_networking_subnet_v2.subnet_3]
+}
+
+
 # Flavor creation
 resource "openstack_compute_flavor_v2" "flavor_1" {
     name        = "flavor_1"
@@ -93,6 +107,19 @@ resource "openstack_networking_subnet_v2" "subnet_4" {
     cidr        = "10.0.3.0/24"
     ip_version        = 4
 }
+
+resource "openstack_compute_instance_v2" "instance_2" {
+    count            = 1
+    name            = "instance_2"
+    image_id        = openstack_images_image_v2.cirros.id
+    flavor_id       = "42"
+
+    network {
+        name    = openstack_networking_network_v2.private_2.name
+    }
+	depends_on	= [openstack_networking_subnet_v2.subnet_2]
+}
+
 
 resource "openstack_networking_router_interface_v2" "interface_1"{
     router_id    = openstack_networking_router_v2.router_1.id
@@ -167,25 +194,3 @@ resource "openstack_compute_instance_v2" "instance_1" {
 	depends_on		= [openstack_networking_port_v2.http]
 }
 # Add 0 instances with cirros image in the network
-resource "openstack_compute_instance_v2" "instance_2" {
-    count            = 1
-    name            = "instance_2"
-    image_id        = openstack_images_image_v2.cirros.id
-    flavor_id       = "42"
-
-    network {
-        name    = openstack_networking_network_v2.private_2.name
-    }
-	depends_on	= [openstack_networking_subnet_v2.subnet_2]
-}
-resource "openstack_compute_instance_v2" "instance_3" {
-    count            = 1
-    name            = "instance_3"
-    image_id        = openstack_images_image_v2.cirros.id
-    flavor_id       = "42"
-
-    network {
-        name    = openstack_networking_network_v2.private_3.name
-    }
-	depends_on	= [openstack_networking_subnet_v2.subnet_3]
-}`;

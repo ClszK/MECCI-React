@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
 import {
   Box,
   Card,
@@ -10,8 +10,12 @@ import {
   MenuItem,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
+import client from "../../utils/clients";
+import { FileContext } from "../../context/context";
 
-import { tokens} from "../../theme";
+import { tokens } from "../../theme";
+import ModalDialog from "../../components/ModalDialog";
+import { useGridApiOptionHandler } from "@mui/x-data-grid";
 
 const StyledTextField = styled(TextField)(({ theme }) => ({
   margin: "15px 1rem",
@@ -31,34 +35,34 @@ const StyledTextField = styled(TextField)(({ theme }) => ({
 
 const typeInfralist = [
   {
-    value: "Financial",
+    value: "fin",
     label: "Financial",
   },
   {
-    value: "Manufacturing",
+    value: "man",
     label: "Manufacturing",
   },
   {
-    value: "Devlopment",
+    value: "dev",
     label: "Devlopment",
   },
   {
-    value: "NPP",
+    value: "npp",
     label: "NPP",
   },
 ];
 
 const imgTypelist = [
   {
-    value: "Windows",
+    value: "win",
     label: "Windows",
   },
   {
-    value: "Linux",
+    value: "lin",
     label: "Linux",
   },
   {
-    value: "Mac",
+    value: "mac",
     label: "Mac",
   },
 ];
@@ -75,10 +79,26 @@ const UserForm = (props) => {
   const [subnets, setSubnets] = useState("");
   const [imageType, setImageType] = useState("");
 
-  const handleFormSubmit = (e) => {
+  const [result, setResult] = useState(false);
+  const [open, setOpen] = useState(false);
+
+  const { filename, setFilename, iac, setIac } = useContext(FileContext);
+
+  const handleFormSubmit = async (e) => {
     e.preventDefault();
     console.log(typeOfInfra, instances, routers, subnets, imageType);
-    navigate("/viewcode");
+    try {
+      const res = await client.get(
+        `/choice-iac?infraType=${typeOfInfra}&routeNum=${routers}&subnetNum=${subnets}&instanceNum=${instances}&imageType=${imageType}`
+      );
+      console.log(res);
+      setFilename(res.data.fileName);
+      setIac(res.data.code);
+      setResult(res.data.result == "true" ? true : false);
+      navigate("/viewcode");
+    } catch (err) {
+      console.log(err);
+    }
   };
 
   return (
@@ -150,14 +170,16 @@ const UserForm = (props) => {
         >
           Cancel
         </Button>
-        <Button
-          variant="contained"
-          type="submit"
-          sx={{ margin: "1rem" }}
-        >
+        <Button variant="contained" type="submit" sx={{ margin: "1rem" }}>
           Generate
         </Button>
       </Box>
+      {/* <ModalDialog
+        open={open}
+        handleClose={() => {
+          setOpen((prev) => !prev);
+        }}
+      ></ModalDialog> */}
     </Box>
   );
 };

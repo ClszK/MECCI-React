@@ -37,11 +37,19 @@ const Select = () => {
     <div>
       <Box sx={{ height: "20vh" }} />
       <Box
+      display="flex"
         sx={{
-          width: "100%",
           height: "60vh",
+          ml: "10%px",
+          mr: "10%"
         }}
       >
+        <img src='../../../assets/logo_text.png' alt="" style={{
+          alignContent: "center",
+          width: "25%",
+          height: "50%",
+          margin: "10%"
+        }}/>
         <Box
           display="flex"
           sx={{
@@ -52,7 +60,7 @@ const Select = () => {
           }}
         >
           <SelectCard
-            title="Upload TF File"
+            title="Upload IaC File"
             src="../../assets/upload.png"
             num="01"
             click={handleOpen}
@@ -88,7 +96,7 @@ const Select = () => {
             open={openUser}
             handleClose={handleCloseUser}
             title="User Input Form"
-            style="500px"
+            styled={"500px"}
           >
             <UserForm close={handleClose} />
           </ModalDialog>
@@ -96,7 +104,7 @@ const Select = () => {
             open={open}
             handleClose={handleClose}
             title="File Upload"
-            style="700px"
+            styled={"700px"}
           >
             <FileUpload />
           </ModalDialog>

@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useContext } from "react";
 import {
   Box,
   useTheme,
@@ -17,6 +17,7 @@ import { UploadFile } from "@mui/icons-material";
 import axios from "axios";
 import client from "../../utils/clients";
 import ModalDialog from "../../components/ModalDialog";
+import { FileContext } from "../../context/context";
 
 const StyledTextField = styled(TextField)(({ theme }) => ({
   margin: "1rem",
@@ -62,7 +63,7 @@ const FileUpload = () => {
   const uploadedAreaRef = useRef();
 
   const [open, setOpen] = useState(false);
-  const [file, setFile] = useState("");
+  const { filename, setFilename, iac, setIac } = useContext(FileContext);
   const [selected, setSeleted] = useState("");
 
   const navigate = useNavigate();
@@ -75,20 +76,15 @@ const FileUpload = () => {
     fileCurrent.onchange = ({ target }) => {
       let file = target.files[0];
       setOpen(true);
-
-      if (file) {
-        setFile(file);
-      }
+      setFilename(file);
     };
   };
 
-  const uploadFile = async (file, val) => {
+  const uploadFile = async (val) => {
     const formData = new FormData(formRef.current);
 
-    console.log(val);
-
-    formData.append("file", file);
-    formData.append("name", file.name);
+    formData.append("file", filename);
+    formData.append("name", filename.name);
     formData.append("industry", val);
 
     for (let key of formData.keys()) {
@@ -111,8 +107,12 @@ const FileUpload = () => {
         headers: res.headers,
         data: res.data,
       };
-      if (!res.data.debug) navigate("/viewcode");
-      else {
+
+      setFilename(res.data.fileName);
+      if (!res.data.debug) {
+        setIac(res.data.code);
+        navigate("/viewcode");
+      } else {
         setOpen(false);
       }
       console.log(res);
@@ -133,30 +133,6 @@ const FileUpload = () => {
           />
           <p>Browse file to Upload</p>
         </form>
-        <section ref={uploadedAreaRef} className="uploaded-area">
-          <li className="row">
-            <PostAddIcon
-              sx={{
-                color: "#182642",
-                fontSize: "28px",
-              }}
-            />
-            <div className="content">
-              <div className="details">
-                <span className="name">image_01.png Uploaded</span>
-                <span className="size">70 KB</span>
-              </div>
-              <div className="progress-bar" />
-              <div className="progress" />
-            </div>
-            <CheckIcon
-              sx={{
-                color: "#182642",
-                fontSize: "28px",
-              }}
-            />
-          </li>
-        </section>
         <ModalDialog
           open={open}
           title="Type of Infra"
@@ -170,7 +146,7 @@ const FileUpload = () => {
             required
             onChange={(e) => {
               setSeleted(e.target.value);
-              uploadFile(file, e.target.value);
+              uploadFile(e.target.value);
             }}
           >
             {typeInfralist.map((option) => (

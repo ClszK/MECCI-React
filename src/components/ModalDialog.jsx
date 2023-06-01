@@ -2,25 +2,25 @@ import { Dialog, Box, DialogTitle } from "@mui/material";
 import React from "react";
 
 const ModalDialog = (props) => {
-  const { open, handleClose, children, title, style } = props;
+  const { open, handleClose, children, title, styled } = props;
   return (
     <Dialog open={open} onClose={handleClose}>
       <Box
         display="flex"
         alignItems="center"
         justifyContent="center"
-        height="90%"
+        height="100%"
       >
         <Box
           sx={{
-            width: style,
+            width: `${styled}`,
             padding: "30px 40px",
             backgroundColor: "#1F2A40",
           }}
         >
           <DialogTitle
             sx={{
-              color: "#e0e0e0",
+              color: "#fff",
               fontSize: "40px",
               fontWeight: "600",
               textAlign: "center",
